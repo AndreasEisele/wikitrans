@@ -13,6 +13,8 @@ from BeautifulSoup import BeautifulSoup
 from datetime import datetime
 from urllib import quote_plus, unquote_plus
 
+from wpTextExtractor import wiki2sentences 
+
 # Generic relation to mturk_manager
 from django.contrib.contenttypes import generic
 from mturk_manager.models import HITItem, AssignmentItem
@@ -54,20 +56,28 @@ class SourceArticle(models.Model):
     def save(self):
         sentences = list()
         segment_id = 0
-        soup = BeautifulSoup(self.source_text)
+        #soup = BeautifulSoup(self.source_text)
         sentence_splitter = determine_splitter(self.language)
         # initial save for foriegn key based saves to work
         # save should occur after sent_detector is loaded
         super(SourceArticle, self).save()
-        for p in soup.findAll('p'):
-            only_p = p.findAll(text=True)
-            p_text = ''.join(only_p)
-            for sentence in sentence_splitter(p_text.strip()):
-                s = SourceSentence(article=self, text=sentence, segment_id=segment_id)
-                segment_id += 1
-                s.save()
-            s.end_of_paragraph = True
+        #for p in soup.findAll('p'):
+        #    only_p = p.findAll(text=True)
+        #    p_text = ''.join(only_p)
+        #    for sentence in sentence_splitter(p_text.strip()):
+        #        s = SourceSentence(article=self, text=sentence, segment_id=segment_id)
+        #        segment_id += 1
+        #        s.save()
+        #    s.end_of_paragraph = True
+        import sys
+        print >> sys.stderr, 'got here...'
+        for sent,tag in zip(*wiki2sentences(self.source_text,sentence_splitter)):
+            s = SourceSentence(article=self, text=sent, segment_id=segment_id)
+            segment_id += 1
+            if tag=='LastSentence':
+                s.end_of_paragraph = True
             s.save()
+
         self.sentences_processed = True
         super(SourceArticle, self).save()
 
